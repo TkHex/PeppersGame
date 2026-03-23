@@ -12,8 +12,8 @@ body {
 .hero {
     border-radius: 30px;
     border: 3px solid grey;
-    width: 60vw;
-    height: 60vh;
+    width: 794px;
+    height: 494px;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -26,16 +26,21 @@ body {
 }
 
 .hero-title {
+    display: block;
     font-size: 60px;
     margin: 0;
+    animation: fontScale linear 5s infinite;
 }
 
 .hero-dead {
+    display: none;
     text-align: center;
     font-size: 60px;
+    animation: fontScale linear 5s infinite;
 }
 
 .hero-dead-span {
+    display: block;
     font-size: 50px;
 }
 
@@ -46,4 +51,61 @@ body {
     border-radius: 10px;
     font-size: 30px;
     font-family: "Russo One", sans-serif;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.hero-button:hover {
+    transform: scale(1.04);
+    transition: 0.3s;
+}
+
+.hero-button:active {
+    transform: scale(0.98);
+    background-color: rgb(0, 0, 0, 0.1);
+}
+
+#canvas {
+    padding: 20px;
+    opacity: 0;
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 20px;
+    border: 3px solid black;
+}
+
+@keyframes fontScale {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    
+    100% {
+        opacity: 1;
+    }
 }
