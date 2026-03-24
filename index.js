@@ -6,6 +6,8 @@ let platform = null;
 let ball = null;
 let boosts = [];
 let blockID = null;
+let counter = null;
+let stringCount = '';
 
 let keys = {
     left: false,
@@ -23,6 +25,7 @@ document.addEventListener('DOMContentLoaded', init);
 function init() {
     const hero = document.querySelector(".hero");
     const button = document.querySelector(".hero-button");
+    counter = document.querySelector(".counter");
 
     // if (!gameStarted) {
     //     button.addEventListener('click', () => {
@@ -55,7 +58,7 @@ function canvasStart() {
         width: 120,
         height: 30,
         color: "black",
-        speed: 5
+        speed: 10
     };
 
     ball = {
@@ -76,7 +79,7 @@ function canvasStart() {
 function gameLoop() {
     updateDesk();
     drawMainElements();
-    
+
     requestAnimationFrame(gameLoop);
 }
 
@@ -110,7 +113,7 @@ function drawBlocks(canvas) {
 
 function drawMainElements() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     ctx.fillStyle = platform.color;
     ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
 
@@ -158,9 +161,9 @@ function setupControls() {
             e.preventDefault();
             keys.right = true;
         }
-        
+
         if (e.key == ' ') {
-            
+
             if (!gameStarted) {
                 gameStarted = true;
                 ball.vx = 5;
@@ -183,7 +186,13 @@ function setupControls() {
 function updateBall() {
     ball.x += ball.vx;
     ball.y += ball.vy;
-    
+
+    ballAndBorts();
+    ballAndBlocks();
+
+}
+
+function ballAndBorts() {
     if (ball.x >= canvas.width - 20) {
         ball.vx = -ball.vx;
         ball.x = canvas.width - 20;
@@ -192,7 +201,7 @@ function updateBall() {
         ball.vx = -ball.vx;
         ball.x = 20;
     }
-    
+
     if (ball.y <= 20) {
         ball.vy = -ball.vy;
         ball.y = 20;
@@ -200,11 +209,11 @@ function updateBall() {
 
     if (blocksWithOne.length !== 0 || blocksWithTwo.length !== 0) {
     }
-    
+
     if (ball.y + ball.radius / 2 >= platform.y
         && ball.x + ball.radius / 2 > platform.x
         && ball.x - ball.radius / 2 < platform.x + platform.width) {
-        
+
         ball.vy = -ball.vy;
         ball.y = platform.y - ball.radius;
 
@@ -217,8 +226,67 @@ function updateBall() {
         ball.x = platform.x + platform.width / 2;
         ball.y = platform.y - platform.height;
     }
+}
 
+function ballAndBlocks() {
+    for (let i = blocksWithOne.length - 1; i >= 0; i--) {
+        const block = blocksWithOne[i];
 
+        if (ball.x + ball.radius > block.x
+            && ball.x - ball.radius < block.x + block.width
+            && ball.y + ball.radius > block.y
+            && ball.y - ball.radius < block.y + block.height
+        ) {
+            let ballCenterX = ball.x;
+            let ballCenterY = ball.y;
+
+            let blockCenterX = block.x + block.width / 2;
+            let blockCenterY = block.y + block.height / 2;
+
+            let dx = ballCenterX - blockCenterX;
+            let dy = ballCenterY - blockCenterY;
+
+            if (Math.abs(dx) / block.width > Math.abs(dy) / block.height) {
+                ball.vx = -ball.vx;
+            } else {
+                ball.vy = -ball.vy;
+            }
+
+            blocksWithOne.splice(i, 1);
+            break;
+        }
+    }
+
+    for (let i = blocksWithTwo.length - 1; i >= 0; i--) {
+        const block = blocksWithTwo[i];
+
+        if (ball.x + ball.radius > block.x
+            && ball.x - ball.radius < block.x + block.width
+            && ball.y + ball.radius > block.y
+            && ball.y - ball.radius < block.y + block.height
+        ) {
+            let ballCenterX = ball.x;
+            let ballCenterY = ball.y;
+
+            let blockCenterX = block.x + block.width / 2;
+            let blockCenterY = block.y + block.height / 2;
+
+            let dx = ballCenterX - blockCenterX;
+            let dy = ballCenterY - blockCenterY;
+
+            if (Math.abs(dx) / block.width > Math.abs(dy) / block.height) {
+                ball.vx = -ball.vx;
+            } else {
+                ball.vy = -ball.vy;
+            }
+
+            block.hits += 1;
+
+            if (block.hits === 2) {
+                blocksWithTwo.splice(i, 1);
+            }
+        }
+    }
 }
 
 function randomBoosts() {
