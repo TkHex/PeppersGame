@@ -1,5 +1,21 @@
-const blocksWithOne = [];
-const blocksWithTwo = [];
+let blocksWithOne = [];
+let blocksWithTwo = [];
+let blockWidth = 58;
+let blockHeight = 30;
+let platform = null;
+let ball = null;
+let boosts = [];
+
+let keys = {
+    left: false,
+    right: false
+}
+
+let gameStarted = false;
+let winState = false;
+
+let canvas = null;
+let ctx = null;
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -7,48 +23,79 @@ function init() {
     const hero = document.querySelector(".hero");
     const button = document.querySelector(".hero-button");
 
-    button.addEventListener('click', () => {
-        hero.style.animation = "fadeOut linear 1s"
-        setTimeout(() => {
-            hero.style.display = "none";
-            canvasStart();
-        }, 1000);
-    });
+    // if (!gameStarted) {
+    //     button.addEventListener('click', () => {
+    //         hero.style.animation = "fadeOut linear 1s"
+    //         setTimeout(() => {
+    //             hero.style.display = "none";
+    //             canvasStart();
+    //         }, 1000);
+    //     });
+    // }
+
+    canvasStart();
 }
 
 function canvasStart() {
-    let canvas = document.getElementById("canvas");
+    canvas = document.getElementById("canvas");
+
     canvas.style.animation = "fadeIn linear 0.5s forwards";
     setTimeout(() => {
         canvas.style.display = "flex";
     }, 500);
+
     canvas.width = 900;
     canvas.height = 600;
-    
-    let ctx = canvas.getContext('2d');
-    createBlocks();
-    drawBlocks(ctx);
+    ctx = canvas.getContext('2d');
+
+    platform = {
+        x: canvas.width / 2 - 60,
+        y: canvas.height - 50,
+        width: 120,
+        height: 30,
+        color: "black",
+        speed: 5
+    };
+
+    ball = {
+        x: platform.x + platform.width / 2,
+        y: platform.y - platform.height,
+        radius: 20,
+        color: "red"
+    };
+
+    drawBlocks(canvas);
+    setupControls();
+
+    gameLoop();
 }
 
-function createBlocks() {
+function gameLoop() {
+    updateDesk();
+    drawMainElements();
+    
+    requestAnimationFrame(gameLoop);
+}
+
+function drawBlocks(canvas) {
     let floor = 100;
-    for (let i = 0; i < 870; i+=60) {
+    for (let i = 0; i < canvas.width - 30; i += 60) {
         blocksWithTwo.push({
             x: i,
             y: 100,
-            width: 58,
-            height: 30,
+            width: blockWidth,
+            height: blockHeight,
             color: "black",
             hits: 0
         });
 
         if (floor <= 260) {
-            for (let j = 0; j < 870; j+=60) {
+            for (let j = 0; j < canvas.width - 30; j += 60) {
                 blocksWithOne.push({
                     x: j,
                     y: floor + 40,
-                    width: 58,
-                    height: 30,
+                    width: blockWidth,
+                    height: blockHeight,
                     color: "green"
                 });
             }
@@ -58,16 +105,73 @@ function createBlocks() {
     }
 }
 
-function drawBlocks(ctx) {
+function drawMainElements() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    blocksWithTwo.forEach(block => {
-        ctx.fillStyle = block.color;
-        ctx.fillRect(block.x, block.y, block.width, block.height);
-    });
+    
+    ctx.fillStyle = platform.color;
+    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+
+    ctx.beginPath();
+    ctx.fillStyle = ball.color;
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.closePath();
 
     blocksWithOne.forEach(block => {
         ctx.fillStyle = block.color;
         ctx.fillRect(block.x, block.y, block.width, block.height);
     });
+
+    blocksWithTwo.forEach(block => {
+        ctx.fillStyle = block.color;
+        ctx.fillRect(block.x, block.y, block.width, block.height);
+    });
+}
+
+function updateDesk() {
+    if (keys.left && platform.x > 0) {
+        platform.x -= platform.speed;
+    }
+
+    if (keys.right && (platform.x + platform.width) < canvas.width) {
+        platform.x += platform.speed;
+    }
+
+    if (!gameStarted) {
+        ball.x = platform.x + platform.width / 2;
+    }
+}
+
+function setupControls() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key == "A" || e.key == "a" || e.key == "ф" || e.key == "Ф" || e.key == "ArrowLeft") {
+            e.preventDefault();
+            keys.left = true;
+        }
+
+        if (e.key == "D" || e.key == "d" || e.key == "В" || e.key == "в" || e.key == "ArrowRight") {
+            e.preventDefault();
+            keys.right = true;
+        }
+
+        if (e.key == "  ") {
+            gameStarted = true;
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.key == "A" || e.key == "a" || e.key == "ф" || e.key == "Ф" || e.key == "ArrowLeft") {
+            keys.left = false;
+        }
+
+        if (e.key == "D" || e.key == "d" || e.key == "В" || e.key == "в" || e.key == "ArrowRight") {
+            keys.right = false;
+        }
+    });
+}
+
+
+
+function randomBoosts() {
 
 }
