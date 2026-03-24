@@ -5,6 +5,7 @@ let blockHeight = 30;
 let platform = null;
 let ball = null;
 let boosts = [];
+let blockID = null;
 
 let keys = {
     left: false,
@@ -61,7 +62,9 @@ function canvasStart() {
         x: platform.x + platform.width / 2,
         y: platform.y - platform.height,
         radius: 20,
-        color: "red"
+        color: "red",
+        vx: 0,
+        vy: 0
     };
 
     drawBlocks(canvas);
@@ -139,6 +142,8 @@ function updateDesk() {
 
     if (!gameStarted) {
         ball.x = platform.x + platform.width / 2;
+    } else {
+        updateBall();
     }
 }
 
@@ -153,9 +158,14 @@ function setupControls() {
             e.preventDefault();
             keys.right = true;
         }
-
-        if (e.key == "  ") {
-            gameStarted = true;
+        
+        if (e.key == ' ') {
+            
+            if (!gameStarted) {
+                gameStarted = true;
+                ball.vx = 5;
+                ball.vy = -5;
+            }
         }
     });
 
@@ -170,7 +180,46 @@ function setupControls() {
     });
 }
 
+function updateBall() {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+    
+    if (ball.x >= canvas.width - 20) {
+        ball.vx = -ball.vx;
+        ball.x = canvas.width - 20;
+    }
+    if (ball.x <= 20) {
+        ball.vx = -ball.vx;
+        ball.x = 20;
+    }
+    
+    if (ball.y <= 20) {
+        ball.vy = -ball.vy;
+        ball.y = 20;
+    }
 
+    if (blocksWithOne.length !== 0 || blocksWithTwo.length !== 0) {
+    }
+    
+    if (ball.y + ball.radius / 2 >= platform.y
+        && ball.x + ball.radius / 2 > platform.x
+        && ball.x - ball.radius / 2 < platform.x + platform.width) {
+        
+        ball.vy = -ball.vy;
+        ball.y = platform.y - ball.radius;
+
+    }
+
+    if (ball.y + ball.radius >= canvas.height) {
+        gameStarted = false;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.x = platform.x + platform.width / 2;
+        ball.y = platform.y - platform.height;
+    }
+
+
+}
 
 function randomBoosts() {
 
