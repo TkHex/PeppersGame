@@ -1,294 +1,439 @@
-let blocksWithOne = [];
-let blocksWithTwo = [];
-let blockWidth = 58;
-let blockHeight = 30;
+let blocks = [];
+let boosts = [];
 let platform = null;
 let ball = null;
-let boosts = [];
-let blockID = null;
-let counter = null;
-let stringCount = '';
+let pointsCounter = null;
+let lifesCounter = null;
+let gameStarted = false;
+let winState = false;
+let animationID = null;
+let isGameRunning = false;
+let isButtonListenerBeing = false;
 
-let keys = {
+let hero = null;
+let heroDead = null;
+let heroWin = null;
+let canvas = null;
+let ctx = null;
+let canvasCounters = null;
+let pointsDisplay = null;
+let lifesDisplay = null;
+
+const BLOCK_WIDTH = 58;
+const BLOCK_HEIGHT = 30;
+const PLATFORM_WIDTH = 160;
+const PLATFORM_HEIGHT = 30;
+const BALL_RADIUS = 12;
+const CANVAS_WIDTH = 900;
+const CANVAS_HEIGHT = 600;
+
+const keys = {
     left: false,
     right: false
 }
 
-let gameStarted = false;
-let winState = false;
-
-let canvas = null;
-let ctx = null;
-
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
-    const hero = document.querySelector(".hero");
+    hero = document.querySelector(".hero");
+    heroDead = document.querySelector(".hero-dead");
+    heroWin = document.querySelector(".hero-win");
+    canvas = document.getElementById("canvas");
+    canvasCounters = document.querySelector(".canvas-block-score");
+    pointsDisplay = document.querySelector(".points");
+    lifesDisplay = document.querySelector(".lifes-counter");
     const button = document.querySelector(".hero-button");
-    counter = document.querySelector(".counter");
 
-    // if (!gameStarted) {
-    //     button.addEventListener('click', () => {
-    //         hero.style.animation = "fadeOut linear 1s"
-    //         setTimeout(() => {
-    //             hero.style.display = "none";
-    //             canvasStart();
-    //         }, 1000);
-    //     });
-    // }
+    heroWin.style.display = "none";
+    heroDead.style.display = "none";
+    hero.style.display = "";
 
-    canvasStart();
+    if (isButtonListenerBeing) {
+        button.removeEventListener('click', startGame);
+        isButtonListenerBeing = false;
+    }
+
+    button.addEventListener('click', startGame);
+
+    resetGame();
 }
 
-function canvasStart() {
-    canvas = document.getElementById("canvas");
-
-    canvas.style.animation = "fadeIn linear 0.5s forwards";
+function startGame() {
     setTimeout(() => {
-        canvas.style.display = "flex";
-    }, 500);
+        heroWin.style.display = "none";
+        heroDead.style.display = "none";
+        document.querySelector(".help-title-1").style.display = "none";
+    }, 1000);
+    hero.style.display = "";
 
-    canvas.width = 900;
-    canvas.height = 600;
-    ctx = canvas.getContext('2d');
+    resetGame();
+
+    hero.style.animation = "fadeOut linear 1s";
+    setTimeout(() => {
+        hero.style.display = "none";
+        initGame();
+    }, 1000);
+}
+
+function resetGame() {
+    if (animationID) {
+        cancelAnimationFrame(animationID);
+        animationID = null;
+    }
+
+    isGameRunning = false;
+    gameStarted = false;
+    winState = false;
+    lifesCounter = 3;
+    pointsCounter = 0;
+
+    blocks = [];
+    boosts = [];
+
+    keys.left = false; 
+    keys.right = false;
+    
+    if (pointsDisplay) pointsDisplay.textContent = "0";
+    if (lifesDisplay) lifesDisplay.textContent = "3";
+}
+
+function initGame() {
+    canvasCounters.style.display = "block";
+    pointsDisplay.textContent = "0";
+    lifesDisplay.textContent = "3";
+
+    canvas.style.display = "block";
+    canvas.style.animation = "fadeIn linear 1s forwards";
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    
+    ctx = canvas.getContext("2d");
 
     platform = {
-        x: canvas.width / 2 - 60,
-        y: canvas.height - 50,
-        width: 120,
-        height: 30,
+        x: CANVAS_WIDTH / 2 - PLATFORM_WIDTH / 2,
+        y: CANVAS_HEIGHT - 50,
+        width: PLATFORM_WIDTH,
+        height: PLATFORM_HEIGHT,
         color: "black",
-        speed: 10
+        speed: 5
     };
 
     ball = {
         x: platform.x + platform.width / 2,
-        y: platform.y - platform.height,
-        radius: 20,
+        y: platform.y - BALL_RADIUS,
+        radius: BALL_RADIUS,
         color: "red",
         vx: 0,
         vy: 0
     };
 
-    drawBlocks(canvas);
+    createBlocks();
     setupControls();
-
+    isGameRunning = true;
     gameLoop();
 }
 
-function gameLoop() {
-    updateDesk();
-    drawMainElements();
+function createBlocks() {
+    blocks = [];
 
-    requestAnimationFrame(gameLoop);
-}
+    const startX = 50;
+    const startY = 60;
+    const blockSpacing = 2;
+    const colors = [
+        { hits: 2, color: "grey" },
+        { hits: 1, color: "orange" },
+        { hits: 1, color: "yellow" },
+        { hits: 1, color: "green" },
+        { hits: 1, color: "blue" }
+    ];
 
-function drawBlocks(canvas) {
-    let floor = 100;
-    for (let i = 0; i < canvas.width - 30; i += 60) {
-        blocksWithTwo.push({
-            x: i,
-            y: 100,
-            width: blockWidth,
-            height: blockHeight,
-            color: "black",
-            hits: 0
-        });
+    for (let i = 0; i < 5; i++) {
+        const blockConfig = colors[i % colors.length];
+        const y = startY + i * (BLOCK_HEIGHT + blockSpacing);
+        const blocksInRow = Math.floor((CANVAS_WIDTH - startX * 2) / (BLOCK_WIDTH + blockSpacing));
 
-        if (floor <= 260) {
-            for (let j = 0; j < canvas.width - 30; j += 60) {
-                blocksWithOne.push({
-                    x: j,
-                    y: floor + 40,
-                    width: blockWidth,
-                    height: blockHeight,
-                    color: "green"
-                });
-            }
+        for (let j = 0; j < blocksInRow; j++) {
+            const x = startX + j * (BLOCK_WIDTH + blockSpacing);
+
+            blocks.push({
+                x: x,
+                y: y,
+                width: BLOCK_WIDTH,
+                height: BLOCK_HEIGHT,
+                color: blockConfig.color,
+                hits: blockConfig.hits,
+                maxHits: blockConfig.hits
+            });
         }
-
-        floor += 40;
-    }
-}
-
-function drawMainElements() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = platform.color;
-    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-
-    ctx.beginPath();
-    ctx.fillStyle = ball.color;
-    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.closePath();
-
-    blocksWithOne.forEach(block => {
-        ctx.fillStyle = block.color;
-        ctx.fillRect(block.x, block.y, block.width, block.height);
-    });
-
-    blocksWithTwo.forEach(block => {
-        ctx.fillStyle = block.color;
-        ctx.fillRect(block.x, block.y, block.width, block.height);
-    });
-}
-
-function updateDesk() {
-    if (keys.left && platform.x > 0) {
-        platform.x -= platform.speed;
-    }
-
-    if (keys.right && (platform.x + platform.width) < canvas.width) {
-        platform.x += platform.speed;
-    }
-
-    if (!gameStarted) {
-        ball.x = platform.x + platform.width / 2;
-    } else {
-        updateBall();
     }
 }
 
 function setupControls() {
-    document.addEventListener('keydown', (e) => {
-        if (e.key == "A" || e.key == "a" || e.key == "ф" || e.key == "Ф" || e.key == "ArrowLeft") {
+    const keyDownHandler  = (e) => {
+        const key = e.key.toLowerCase();
+
+        if (key === 'a' || key === 'ф' || key === 'arrowleft') {
             e.preventDefault();
             keys.left = true;
         }
 
-        if (e.key == "D" || e.key == "d" || e.key == "В" || e.key == "в" || e.key == "ArrowRight") {
+        if (key === 'd' || key === 'в' || key === 'arrowright') {
             e.preventDefault();
             keys.right = true;
         }
 
-        if (e.key == ' ') {
-
-            if (!gameStarted) {
+        if (key === " ") {
+            e.preventDefault();
+            if (!gameStarted && isGameRunning) {
                 gameStarted = true;
-                ball.vx = 5;
-                ball.vy = -5;
+                ball.vx = 3;
+                ball.vy = -3;
             }
         }
-    });
+    };
 
-    document.addEventListener('keyup', (e) => {
-        if (e.key == "A" || e.key == "a" || e.key == "ф" || e.key == "Ф" || e.key == "ArrowLeft") {
+    const keyUpHandler = (e) => {
+        const key = e.key.toLowerCase();
+
+        if (key === 'a' || key === 'ф' || key === 'arrowleft') {
             keys.left = false;
         }
 
-        if (e.key == "D" || e.key == "d" || e.key == "В" || e.key == "в" || e.key == "ArrowRight") {
+        if (key === 'd' || key === 'в' || key === 'arrowright') {
             keys.right = false;
         }
-    });
+    };
+
+    document.removeEventListener('keydown', keyDownHandler);
+    document.removeEventListener('keyup', keyUpHandler);
+    document.addEventListener('keydown', keyDownHandler);
+    document.addEventListener('keyup', keyUpHandler);
 }
 
-function updateBall() {
-    ball.x += ball.vx;
-    ball.y += ball.vy;
+function gameLoop() {
+    if (!isGameRunning) return;
 
-    ballAndBorts();
-    ballAndBlocks();
+    updateGame();
+    drawGame();
 
+    if (!winState && lifesCounter > 0 && isGameRunning) {
+        animationID = requestAnimationFrame(gameLoop);
+    } else {
+        isGameRunning = false;
+        if (animationID) {
+            cancelAnimationFrame(animationID);
+            animationID = null;
+        }
+    }
 }
 
-function ballAndBorts() {
-    if (ball.x >= canvas.width - 20) {
-        ball.vx = -ball.vx;
-        ball.x = canvas.width - 20;
-    }
-    if (ball.x <= 20) {
-        ball.vx = -ball.vx;
-        ball.x = 20;
+function updateGame() {
+    if (keys.left && platform.x > 0) {
+        platform.x -= platform.speed;
     }
 
-    if (ball.y <= 20) {
-        ball.vy = -ball.vy;
-        ball.y = 20;
+    if (keys.right && platform.x + platform.width < CANVAS_WIDTH) {
+        platform.x += platform.speed;
     }
 
-    if (blocksWithOne.length !== 0 || blocksWithTwo.length !== 0) {
+    if (gameStarted) {
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        checkBorders();
+        checkPlatform();
+        checkBlocks();
+
+        checkGameOver();
+    } else {
+        ball.x = platform.x + platform.width / 2;
+    }
+}
+
+function checkBorders() {
+    if (ball.x - ball.radius <= 0) {
+        ball.vx = Math.abs(ball.vx);
+        ball.x = ball.radius;
     }
 
+    if (ball.x + ball.radius >= CANVAS_WIDTH) {
+        ball.vx = -Math.abs(ball.vx);
+        ball.x = CANVAS_WIDTH - ball.radius;
+    }
+
+    if (ball.y - ball.radius <= 0) {
+        ball.vy = Math.abs(ball.vy);
+        ball.y = ball.radius;
+    }
+
+    if (ball.y + ball.radius >= CANVAS_HEIGHT) {
+        loseLife();
+    }
+}
+
+function checkPlatform() {
     if (ball.y + ball.radius / 2 >= platform.y
-        && ball.x + ball.radius / 2 > platform.x
-        && ball.x - ball.radius / 2 < platform.x + platform.width) {
-
-        ball.vy = -ball.vy;
+        &&  ball.y - ball.radius <= platform.y + platform.height
+        &&  ball.x + ball.radius >= platform.x
+        &&  ball.x - ball.radius <= platform.x + platform.width ) {
+        
+        const hitPos = (ball.x - platform.x) / platform.width;
+        ball.vy = -Math.abs(ball.vy);
+        ball.vx = (hitPos - 0.5) * 8;
+        ball.vx = Math.min(Math.max(ball.vx, -6), 6);
         ball.y = platform.y - ball.radius;
 
     }
+}
 
-    if (ball.y + ball.radius >= canvas.height) {
+function checkBlocks() {
+    for (let i = blocks.length - 1; i >= 0; i--) {
+        const block = blocks[i];
+
+        if (ball.x + ball.radius > block.x
+            && ball.x - ball.radius < block.x + block.width
+            && ball.y + ball.radius > block.y
+            && ball.y - ball.radius < block.y + block.height
+        ) {
+            const overlayLeft = (ball.x + ball.radius) - block.x;
+            const overlayRight = (block.x + block.width) - (ball.x - ball.radius);
+            const overlayTop = (ball.y + ball.radius) - block.y;
+            const overlayBottom = (block.y + block.height) - (ball.y - ball.radius);
+            const minOverlay = Math.min(overlayBottom, overlayLeft, overlayRight, overlayTop);
+
+            if (minOverlay === overlayLeft || minOverlay === overlayRight) {
+                ball.vx = -ball.vx;
+            } else {
+                ball.vy = -ball.vy;
+            }
+
+            block.hits--;
+
+            if (block.hits <= 0) {
+                const addPoints = block.maxHits === 2 ? 20 : 10;
+                pointsCounter += addPoints;
+                pointsDisplay.textContent = pointsCounter.toString();
+                blocks.splice(i, 1);
+            }
+
+            break;
+        }
+    }
+}
+
+function loseLife() {
+    lifesCounter--;
+    lifesDisplay.textContent = lifesCounter.toString();
+
+    if (lifesCounter <= 0) {
+        gameStarted = false;
+        endGame(false);
+    } else {
         gameStarted = false;
         ball.vx = 0;
         ball.vy = 0;
         ball.x = platform.x + platform.width / 2;
-        ball.y = platform.y - platform.height;
+        ball.y = platform.y - ball.radius * 2;
     }
 }
 
-function ballAndBlocks() {
-    for (let i = blocksWithOne.length - 1; i >= 0; i--) {
-        const block = blocksWithOne[i];
-
-        if (ball.x + ball.radius > block.x
-            && ball.x - ball.radius < block.x + block.width
-            && ball.y + ball.radius > block.y
-            && ball.y - ball.radius < block.y + block.height
-        ) {
-            let ballCenterX = ball.x;
-            let ballCenterY = ball.y;
-
-            let blockCenterX = block.x + block.width / 2;
-            let blockCenterY = block.y + block.height / 2;
-
-            let dx = ballCenterX - blockCenterX;
-            let dy = ballCenterY - blockCenterY;
-
-            if (Math.abs(dx) / block.width > Math.abs(dy) / block.height) {
-                ball.vx = -ball.vx;
-            } else {
-                ball.vy = -ball.vy;
-            }
-
-            blocksWithOne.splice(i, 1);
-            break;
-        }
-    }
-
-    for (let i = blocksWithTwo.length - 1; i >= 0; i--) {
-        const block = blocksWithTwo[i];
-
-        if (ball.x + ball.radius > block.x
-            && ball.x - ball.radius < block.x + block.width
-            && ball.y + ball.radius > block.y
-            && ball.y - ball.radius < block.y + block.height
-        ) {
-            let ballCenterX = ball.x;
-            let ballCenterY = ball.y;
-
-            let blockCenterX = block.x + block.width / 2;
-            let blockCenterY = block.y + block.height / 2;
-
-            let dx = ballCenterX - blockCenterX;
-            let dy = ballCenterY - blockCenterY;
-
-            if (Math.abs(dx) / block.width > Math.abs(dy) / block.height) {
-                ball.vx = -ball.vx;
-            } else {
-                ball.vy = -ball.vy;
-            }
-
-            block.hits += 1;
-
-            if (block.hits === 2) {
-                blocksWithTwo.splice(i, 1);
-            }
-        }
+function checkGameOver() {
+    if (blocks.length === 0) {
+        endGame(true);
     }
 }
 
-function randomBoosts() {
+function endGame(isWin) {
+    isGameRunning = false;
+    winState = isWin;
+    gameStarted = false;
 
+    if (animationID) {
+        cancelAnimationFrame(animationID);
+        animationID = null;
+    }
+
+    if (isWin) {
+        showWin();
+    } else {
+        showDead();
+    }
+}
+
+function drawGame() {
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+
+    const platformGrad = ctx.createLinearGradient(
+        platform.x, platform.y + platform.height / 2,
+        platform.x + platform.width, platform.y + platform.height / 2
+    );
+
+    platformGrad.addColorStop(0, "red");
+    platformGrad.addColorStop(1, "blue");
+
+    ctx.fillStyle = platformGrad;
+    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(platform.x + 3, platform.y + 3, platform.width - 6, platform.height - 6);
+
+    ctx.beginPath();
+    ctx.fillStyle = "black";
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.closePath();
+
+    blocks.forEach(block => {
+        ctx.fillStyle = block.color;
+        ctx.fillRect(block.x, block.y, block.width, block.height);
+
+        if (block.maxHits === 2 && block.hits === 1) {
+            ctx.fillStyle = "orange";
+            ctx.fillRect(block.x + 5, block.y + 5, block.width - 10, 5);
+        }
+    });
+}
+
+function showWin() {
+    canvas.style.animation = "fadeOut 0.5s linear forwards";
+
+    setTimeout(() => {
+        canvas.style.display = "none";
+        canvasCounters.style.display = "none";
+    }, 500);
+
+    heroWin.style.display = "block";
+    hero.style.animation = "fadeIn 1s linear forwards";
+    
+    setTimeout(() => {
+        hero.style.display = "";
+        document.querySelector(".help-title-1").style.display = "";
+    }, 1000);
+
+    hero.querySelector(".hero-title").style.display = "none";
+    heroDead.style.display = "none";
+    console.log("Игра закончена");
+}
+
+function showDead() {
+    
+    canvas.style.animation = "fadeOut 0.5s linear forwards";
+
+    setTimeout(() => {
+        canvas.style.display = "none";
+        canvasCounters.style.display = "none";
+    }, 500);
+
+    heroDead.style.display = "block";
+    hero.style.animation = "fadeIn 1s linear forwards";
+    
+    setTimeout(() => {
+        hero.style.display = "";
+        document.querySelector(".help-title-1").style.display = "";
+    }, 1000);
+
+    hero.querySelector(".hero-title").style.display = "none";
+    heroWin.style.display = "none";
+    console.log("Игра закончена");
 }

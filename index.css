@@ -30,17 +30,27 @@ body {
     display: block;
     font-size: 60px;
     margin: 0;
-    animation: fontScale linear 5s infinite;
+    /* animation: fontScale linear 5s infinite; */
 }
 
 .hero-dead {
-    display: none;
     text-align: center;
     font-size: 60px;
     animation: fontScale linear 5s infinite;
 }
 
 .hero-dead-span {
+    display: block;
+    font-size: 50px;
+}
+
+.hero-win {
+    text-align: center;
+    font-size: 60px;
+    animation: fontScale linear 5s infinite;
+}
+
+.hero-win-span {
     display: block;
     font-size: 50px;
 }
@@ -81,6 +91,7 @@ body {
     position: absolute;
     right: 10%;
     font-size: 20px;
+    display: none;
 }
 
 #canvas {

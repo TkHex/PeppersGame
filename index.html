@@ -13,22 +13,34 @@
 
 <body>
 
-    <!-- <div class="hero">
+    <div class="hero">
         <h1 class="hero-title">Великолепная игра</h1>
         <h1 class="hero-dead">
             You dead...</br>
             <span class="hero-dead-span">Попробуйте снова!</span>
         </h1>
 
+        <h1 class="hero-win">
+            Победа!</br>
+            <span class="hero-win-span">Сыграйте снова!</span>
+        </h1>
+
         <button class="hero-button">Играть</button>
-    </div> -->
+    </div>
 
     <h2 class="help-title-2">A - Влево, D - Вправо (или стрелки)</h2>
     <h1 class="help-title-1">Нажми пробел, чтобы начать играть</h1>
     <canvas id="canvas">Not supported</canvas>
-    <p class="canvas-block-score">Очки:
-        <span class="counter"></span>
-    </p>
+    <div class="canvas-block-score">
+        <p>Очки:
+            <span class="points">0</span>
+        </p>
+
+        <p class="lifes">
+            Жизни:
+            <span class="lifes-counter">3</span>
+        </p>
+    </div>
 
     <script src="./index.js"></script>
 </body>
