@@ -14,6 +14,8 @@ let flag = false;
 let chanceToSpawnBoost = null;
 let isBoostSpawn = false;
 let isBoostNeeded = false;
+let deltaTime = 0;
+let lastTimeStamp = 0;
 
 let hero = null;
 let heroDead = null;
@@ -33,6 +35,10 @@ const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 600;
 const MAX_WIDTH = PLATFORM_WIDTH * 2;
 const MAX_BALLS = 10;
+const PLATFORM_SPEED = 600;
+const BALL_SPEED = 400;
+const BOOST_SPEED = 300;
+const MAX_DELTA_TIME = 0.033; // рассчитано на минимальный FPS в 30 кадров.
 
 const keys = {
     left: false,
@@ -123,7 +129,7 @@ function initGame() {
         width: PLATFORM_WIDTH,
         height: PLATFORM_HEIGHT,
         color: "black",
-        speed: 5
+        speed: PLATFORM_SPEED
     };
 
     const initialBall = {
@@ -142,7 +148,7 @@ function initGame() {
     createBlocks();
     setupControls();
     isGameRunning = true;
-    gameLoop();
+    gameLoop(performance.now());
 }
 
 function createBlocks() {
@@ -198,8 +204,8 @@ function setupControls() {
             e.preventDefault();
             if (!gameStarted && isGameRunning) {
                 gameStarted = true;
-                ball.vx = 3;
-                ball.vy = -3;
+                ball.vx = BALL_SPEED;
+                ball.vy = -BALL_SPEED;
             }
         }
     };
@@ -222,10 +228,17 @@ function setupControls() {
     document.addEventListener('keyup', keyUpHandler);
 }
 
-function gameLoop() {
+function gameLoop(currentTime) {
     if (!isGameRunning) return;
 
-    updateGame();
+    deltaTime = 0;
+    if (lastTimeStamp !== 0) {
+        deltaTime = Math.min(MAX_DELTA_TIME, (currentTime - lastTimeStamp) / 1000);
+    }
+
+    lastTimeStamp = currentTime;
+
+    updateGame(deltaTime);
     drawGame();
 
     if (!winState && lifesCounter > 0 && isGameRunning) {
@@ -239,22 +252,22 @@ function gameLoop() {
     }
 }
 
-function updateGame() {
+function updateGame(deltaTime) {
     if (keys.left && platform.x > 0) {
-        platform.x -= platform.speed;
+        platform.x -= platform.speed * deltaTime;
     }
 
     if (keys.right && platform.x + platform.width < CANVAS_WIDTH) {
-        platform.x += platform.speed;
+        platform.x += platform.speed * deltaTime;
     }
 
     if (gameStarted) {
         balls.forEach(ball => {
-            ball.x += ball.vx;
-            ball.y += ball.vy;
+            ball.x += ball.vx * deltaTime;
+            ball.y += ball.vy * deltaTime;
         });
 
-        updateBoosts();
+        updateBoosts(deltaTime);
 
         checkBorders();
         checkPlatform();
@@ -271,7 +284,7 @@ function updateGame() {
 function updateBoosts() {
     for ( let i = 0; i < boosts.length; i++) {
         const boost = boosts[i];
-        boost.y += 2;
+        boost.y += boost.speed * deltaTime;
 
         if (boost.y > CANVAS_HEIGHT) {
             boosts.splice(i, 1);
@@ -333,9 +346,18 @@ function checkPlatform() {
             &&  ball.x - ball.radius <= platform.x + platform.width ) {
             
             const hitPos = (ball.x - platform.x) / platform.width;
+            const currentSpeed = Math.hypot(ball.vx, ball.vy);
             ball.vy = -Math.abs(ball.vy);
-            ball.vx = (hitPos - 0.5) * 8;
-            ball.vx = Math.min(Math.max(ball.vx, -6), 6);
+            
+            const horisontalFactor = (hitPos - 0.5) * 2;
+            ball.vx = horisontalFactor * BALL_SPEED;
+
+            const newSpeed = Math.hypot(ball.vx, ball.vy);
+            if (newSpeed > 0) {
+                ball.vx = (ball.vx / newSpeed) * currentSpeed;
+                ball.vy = (ball.vy / newSpeed) * currentSpeed;
+            }
+
             ball.y = platform.y - ball.radius;
         }
     });
@@ -565,7 +587,7 @@ function trySpawnBoost(x, y) {
             width: BLOCK_WIDTH / 4,
             height: BLOCK_HEIGHT / 4,
             type: "platformBoost",
-            speed: 2
+            speed: BOOST_SPEED
         });
 
         isBoostSpawn = true;
@@ -576,7 +598,7 @@ function trySpawnBoost(x, y) {
             width: BLOCK_WIDTH / 4,
             height: BLOCK_HEIGHT / 4,
             type: "ballBoost",
-            speed: 2
+            speed: BOOST_SPEED
         });
 
         isBoostSpawn = true;
